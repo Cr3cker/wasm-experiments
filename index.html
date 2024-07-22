@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Simple template</title>
+    <script src="dino.js"></script>
+  </head>
+  <body>
+    <canvas id="dino" width="1000" height="500" style="border: 1px solid #000000;"></canvas>
+
+    <script>
+      Module.onRuntimeInitialized = () => {
+        let ppStruct = Module._malloc(4);
+        Module._struct_create(ppStruct);
+        let pStruct = Module.getValue(ppStruct, "i32");
+        Module._struct_print(pStruct);
+
+        let px = Module._malloc(4);
+        let py = Module._malloc(4);
+        Module._struct_query(pStruct, px, py);
+
+        let a = Module.getValue(px, "i32");
+        let b = Module.getValue(py, "i32");
+
+        console.log("Queried values {" + a + ", "+ b + "}");
+      };
+      canvas = document.getElementById("dino");
+      ctx = canvas.getContext("2d");
+      ctx.moveTo(0, 400);
+      ctx.lineTo(1000, 400);
+      ctx.rect(300, 350, 50, 50);
+      ctx.stroke();
+    </script>
+  </body>
+</html>
