@@ -5,7 +5,6 @@ This project demonstrates how to create a simple game structure in C, compile it
 ## Files Included
 - `cube.c`: The main C code file.
 - `index.html`: HTML file to load and interact with the WebAssembly module.
-- `Makefile`: Makefile for compiling the project.
 
 ## How to Compile
 
