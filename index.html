@@ -4,61 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Test Game</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <script src="cube.js"></script>
-    <canvas id="gameCanvas" width="1000" height="600" style="border: 1px solid black;"></canvas>
-    <script>
-        const canvas = document.getElementById("gameCanvas");
-        const ctx = canvas.getContext("2d");
-
-        let create_cube, get_coords, update_cube, start_jump, end_jump;
-        let newCube;
-        let px, py;
-
-        Module.onRuntimeInitialized = function() {
-            create_cube = Module.cwrap("create_cube", "number", []);
-            get_coords = Module.cwrap("get_coords", null, ["number", "number", "number"]);
-            update_cube = Module.cwrap("update_cube", null, ["number", "number"]);
-            start_jump = Module.cwrap("start_jump", null, ["number"]);
-            end_jump = Module.cwrap("end_jump", null, ["number"]);
-
-            newCube = create_cube();
-            px = Module._malloc(4);
-            py = Module._malloc(4);
-
-            window.requestAnimationFrame(gameLoop);
-        };
-
-        function draw() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.beginPath();
-            ctx.moveTo(0, 500);
-            ctx.lineTo(1000, 500);
-            ctx.stroke();
-            get_coords(newCube, px, py);
-            let x = Module.getValue(px, "i32");
-            let y = Module.getValue(py, "i32");
-            ctx.fillRect(x, y, 100, 100);
-        }
-
-        function gameLoop() {
-            window.addEventListener("keydown", function(event) {
-                if (event.code === "Space") {
-                    start_jump(newCube);
-                }
-            }, false);
-            
-            window.addEventListener("keyup", function(event) {
-                if (event.code === "Space") {
-                    end_jump(newCube);
-                }
-            }, false);
-
-            draw();
-            update_cube(newCube, 1/60);
-            window.requestAnimationFrame(gameLoop);
-        }
-    </script>
+    <canvas id="gameCanvas" width="1000" height="600"></canvas>
+    <script src="logic.js"></script>
 </body>
 </html>
