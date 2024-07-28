@@ -1,7 +1,7 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
-let create_cube, get_coords_cube, get_coords_obs, update_frame, start_jump, end_jump;
+let create_cube, get_coords_cube, get_coords_obs, update_frame, start_jump, end_jump, generate_obstacle;
 let newCube, newObs;
 let px, py, o_x, o_y;
 let lastObsTime = 0;
