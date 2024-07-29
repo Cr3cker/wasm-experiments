@@ -1,2 +1,6 @@
 emsdk/*
 emsdk
+raylib/*
+raylib
+.vscode/*
+.vscode
