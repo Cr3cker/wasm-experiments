@@ -1,20 +1,18 @@
-# Cube WebAssembly Game
+# Dino WebAssembly Game (C)
 
 This project demonstrates how to create a simple game structure in C, compile it to WebAssembly using Emscripten, and interact with it in a web environment.
 
-## Files Included
-- `cube.c`: The main C code file.
-- `index.html`: HTML file to load and interact with the WebAssembly module.
+## Files And Dirs Included
+- `dino.c`: The main C code file.
 
 ## How to Compile
 
-### To compile the C code to WebAssembly:
+### To compile the C code natively:
 ```bash
-emcc cube.c -o cube.js -s WASM=1 -s "EXPORTED_FUNCTIONS=['_malloc']" -s "EXPORTED_RUNTIME_METHODS=['cwrap', 'getValue']"
+make dino
 ```
 
-### Running a web server
+### To clean up the executable
 ```bash
-python3 -m http.server
+make clean
 ```
-
