@@ -3,6 +3,7 @@
 #include "raymath.h"
 #include <stdbool.h>
 #include <stdlib.h>
+#include <time.h>
 
 #define DINO_FRAMES_NUM 2
 #define INIT_DINO_X 30.0f
@@ -11,6 +12,7 @@
 #define INIT_GROUND_Y 575.0f
 #define GRAVITY 2500.0f
 #define CACTUS_TYPES 3
+#define CACTUS_SPAWN_INTERVAL 300
 
 typedef enum {
     CACTUS1,
@@ -34,6 +36,7 @@ typedef struct {
     Vector2 size;
     Vector2 pos;
     Vector2 vel;
+    Rectangle cactus_source_rect;
     Texture2D asset;
 } Cactus;
 
@@ -48,7 +51,7 @@ typedef struct {
 const char *asset_paths[ASSET_COUNT] = {
     "./assets/cactus_1.png",
     "./assets/cactus_2.png",
-    "./assets/cactus_3.png"
+    "./assets/cactus_3.png",
     "./assets/dino_run1.png",
     "./assets/dino_run2.png",
     "./assets/ground.png",
@@ -61,6 +64,10 @@ void move_ground(Ground *ground) {
     if (ground->pos.x <= -ground->ground_frame.width) {
         ground->pos.x = 0;
     }
+}
+
+void move_cactus(Cactus *cactus) {
+    cactus->pos = Vector2Add(cactus->pos, cactus->vel);
 }
 
 void dino_update(Dino *dino, float time) {
@@ -82,17 +89,17 @@ void jump_key_release(Dino *dino) {
     if (dino->vel.y < -50.0f) dino->vel.y = -50.0f;
 }
 
-Cactus* create_cacti() {
-    Cactus *cacti = malloc(sizeof(Cactus) * CACTUS_TYPES);
-    for (int i = 0; i < CACTUS_TYPES; i++) {
-        Texture2D asset = LoadTexture(asset_paths[CACTUS1 + i]);
-        cacti[i].asset = asset;
-        cacti[i].size = (Vector2){ asset.width, asset.height };
-        cacti[i].pos = (Vector2){ 200.0f, 200.0f };
-        cacti[i].vel = (Vector2){ -5.0f, 0.0f };
-    }
+Cactus* create_cactus() {
+    Cactus *cactus = malloc(sizeof(Cactus));
+    int random = rand() % CACTUS_TYPES;
+    Texture2D asset = LoadTexture(asset_paths[random]);
+    cactus->asset = asset;
+    cactus->size = (Vector2){ asset.width, asset.height };
+    cactus->cactus_source_rect = (Rectangle){ 0, 0, asset.width, asset.height };
+    cactus->pos = (Vector2){ 1000.0f, INIT_GROUND_Y - asset.height + 20};
+    cactus->vel = (Vector2){ -5.0f, 0.0f };
 
-    return cacti;
+    return cactus;
 }
 
 Ground* create_ground() {
@@ -135,6 +142,7 @@ int main() {
 
     InitWindow(window_width, window_height, "Raylib Dino");
     InitAudioDevice();
+    srand(time(NULL));
 
     SetTargetFPS(120);
 
@@ -142,12 +150,18 @@ int main() {
     int current_frame = 0;
     int current_line = 0;
     int key_pressed;
+    int cactus_spawn_counter = 0;
 
     Dino *dino = create_dino();
     Ground *ground = create_ground();
+    Cactus *cactus = NULL;
 
     while (!WindowShouldClose()) {
         move_ground(ground);
+
+        if (cactus != NULL) {
+            move_cactus(cactus);
+        }
 
         if (IsKeyPressed(KEY_SPACE)) {
             jump_key_press(dino);
@@ -155,6 +169,11 @@ int main() {
 
         if (IsKeyReleased(KEY_SPACE)) {
             jump_key_release(dino);
+        }
+
+        if (cactus_spawn_counter >= CACTUS_SPAWN_INTERVAL) {
+                cactus = create_cactus();
+            cactus_spawn_counter = 0;
         }
 
         dino_update(dino, GetFrameTime());
@@ -180,7 +199,13 @@ int main() {
         DrawTextureRec(ground->ground_frame, ground->ground_source_rect, ground->pos, WHITE);
         DrawTextureRec(ground->ground_frame, ground->ground_source_rect, (Vector2){ground->pos.x + ground->ground_frame.width, ground->pos.y}, WHITE);
 
+        if (cactus != NULL) {
+            DrawTextureRec(cactus->asset, cactus->cactus_source_rect, cactus->pos, WHITE);
+        }
+
         EndDrawing();
+
+        cactus_spawn_counter++;
     }
 
     free(dino);
