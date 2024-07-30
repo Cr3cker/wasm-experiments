@@ -30,6 +30,7 @@ typedef struct {
     Vector2 vel;
     Texture2D dino_frame_loop[DINO_FRAMES_NUM];
     Rectangle dino_source_rect;
+    Rectangle dino_pos_rect;
 } Dino;
 
 typedef struct {
@@ -38,6 +39,7 @@ typedef struct {
     Vector2 vel;
     Rectangle cactus_source_rect;
     Texture2D asset;
+    Rectangle cactus_pos_rect;
 } Cactus;
 
 typedef struct {
@@ -93,11 +95,18 @@ Cactus* create_cactus() {
     Cactus *cactus = malloc(sizeof(Cactus));
     int random = rand() % CACTUS_TYPES;
     Texture2D asset = LoadTexture(asset_paths[random]);
+    Vector2 size = { asset.width, asset.height };
+    Rectangle cactus_source_rect = { 0, 0, asset.width, asset.height };
+    Vector2 pos = { 1000.0f, INIT_GROUND_Y - asset.height + 20};
+    Vector2 vel = { -5.0f, 0.0f };
+    Rectangle cactus_pos_rect = { pos.x, pos.y, asset.width, asset.height };
+
     cactus->asset = asset;
-    cactus->size = (Vector2){ asset.width, asset.height };
-    cactus->cactus_source_rect = (Rectangle){ 0, 0, asset.width, asset.height };
-    cactus->pos = (Vector2){ 1000.0f, INIT_GROUND_Y - asset.height + 20};
-    cactus->vel = (Vector2){ -5.0f, 0.0f };
+    cactus->size = size;
+    cactus->cactus_source_rect = cactus_source_rect;
+    cactus->pos = pos;
+    cactus->vel = vel;
+    cactus->cactus_pos_rect = cactus_pos_rect;
 
     return cactus;
 }
@@ -125,8 +134,10 @@ Dino* create_dino() {
     Vector2 size = { dino_run1.width, dino_run1.height };
     Vector2 vel = { 0.0f, 0.0f };
     Rectangle dino_source_rect = {0, 0, dino_run1.width, dino_run1.height };
+    Rectangle dino_pos_rect = { pos.x, pos.y, dino_run1.width, dino_run1.height };
 
     dino->dino_source_rect = dino_source_rect;
+    dino->dino_pos_rect = dino_pos_rect;
     dino->dino_frame_loop[0] = dino_run1;
     dino->dino_frame_loop[1] = dino_run2;
     dino->pos = pos;
@@ -174,6 +185,10 @@ int main() {
         if (cactus_spawn_counter >= CACTUS_SPAWN_INTERVAL) {
                 cactus = create_cactus();
             cactus_spawn_counter = 0;
+        }
+
+        if (cactus != NULL && CheckCollisionRecs(dino->dino_pos_rect, cactus->cactus_pos_rect)) {
+            printf("Collision\n");
         }
 
         dino_update(dino, GetFrameTime());
