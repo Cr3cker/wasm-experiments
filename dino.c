@@ -10,11 +10,15 @@
 #define GROUND_VEL_X -5.0f
 #define INIT_GROUND_Y 575.0f
 #define GRAVITY 2500.0f
+#define CACTUS_TYPES 3
 
 typedef enum {
+    CACTUS1,
+    CACTUS2,
+    CACTUS3,
     DINO_RUN1,
     DINO_RUN2,
-    GROUND, 
+    GROUND,
     ASSET_COUNT
 } AssetName;
 
@@ -30,6 +34,7 @@ typedef struct {
     Vector2 size;
     Vector2 pos;
     Vector2 vel;
+    Texture2D asset;
 } Cactus;
 
 typedef struct {
@@ -41,9 +46,12 @@ typedef struct {
 
 
 const char *asset_paths[ASSET_COUNT] = {
+    "./assets/cactus_1.png",
+    "./assets/cactus_2.png",
+    "./assets/cactus_3.png"
     "./assets/dino_run1.png",
     "./assets/dino_run2.png",
-    "./assets/ground.png"
+    "./assets/ground.png",
 };
 
 
@@ -72,6 +80,19 @@ void jump_key_press(Dino *dino) {
 
 void jump_key_release(Dino *dino) {
     if (dino->vel.y < -50.0f) dino->vel.y = -50.0f;
+}
+
+Cactus* create_cacti() {
+    Cactus *cacti = malloc(sizeof(Cactus) * CACTUS_TYPES);
+    for (int i = 0; i < CACTUS_TYPES; i++) {
+        Texture2D asset = LoadTexture(asset_paths[CACTUS1 + i]);
+        cacti[i].asset = asset;
+        cacti[i].size = (Vector2){ asset.width, asset.height };
+        cacti[i].pos = (Vector2){ 200.0f, 200.0f };
+        cacti[i].vel = (Vector2){ -5.0f, 0.0f };
+    }
+
+    return cacti;
 }
 
 Ground* create_ground() {
