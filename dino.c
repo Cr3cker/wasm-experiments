@@ -16,6 +16,8 @@
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600
 
+Texture2D *textures;
+
 typedef enum {
     CACTUS1,
     CACTUS2,
@@ -60,18 +62,12 @@ typedef struct {
     Rectangle ground_source_rect;
 } Ground;
 
-
-const char *asset_paths[ASSET_COUNT] = {
-    "./assets/cactus_1.png",
-    "./assets/cactus_2.png",
-    "./assets/cactus_3.png",
-    "./assets/dino_run1.png",
-    "./assets/dino_run2.png",
-    "./assets/ground.png",
-    "./assets/retry_button.png",
-    "./assets/retry_text.png"
-};
-
+void load_textures(const char* asset_paths[]) {
+    textures = malloc(ASSET_COUNT * sizeof(Texture2D));
+    for (int i = 0; i < ASSET_COUNT; i++) {
+        textures[i] = LoadTexture(asset_paths[i]);
+    }
+}
 
 void move_ground(Ground *ground) {
     ground->pos = Vector2Add(ground->pos, ground->vel);
@@ -112,14 +108,18 @@ void jump_key_release(Dino *dino) {
 
 Retry* create_retry_texture() {
     Retry *retry = malloc(sizeof(Retry));
-    Texture2D button_asset = LoadTexture(asset_paths[RETRY_BUTTON]);
-    Vector2 button_pos = { WINDOW_WIDTH / 2 - button_asset.width / 2,  WINDOW_HEIGHT / 2 - button_asset.height / 2 };
-    Texture2D text_asset = LoadTexture(asset_paths[RETRY_TEXT]);
-    Vector2 text_pos = { WINDOW_WIDTH / 2 - text_asset.width / 2,  WINDOW_HEIGHT / 2 - text_asset.height / 2 - 70};
+    Vector2 button_pos = {
+        WINDOW_WIDTH / 2 - textures[RETRY_BUTTON].width / 2,
+        WINDOW_HEIGHT / 2 - textures[RETRY_BUTTON].height / 2
+    };
+    Vector2 text_pos = {
+        WINDOW_WIDTH / 2 - textures[RETRY_TEXT].width / 2,
+        WINDOW_HEIGHT / 2 - textures[RETRY_TEXT].height / 2 - 70
+    };
 
-    retry->button_asset = button_asset;
+    retry->button_asset = textures[RETRY_BUTTON];
     retry->button_pos = button_pos;
-    retry->text_asset = text_asset;
+    retry->text_asset = textures[RETRY_TEXT];
     retry->text_pos = text_pos;
 
     return retry;
@@ -128,14 +128,13 @@ Retry* create_retry_texture() {
 Cactus* create_cactus() {
     Cactus *cactus = malloc(sizeof(Cactus));
     int random = rand() % CACTUS_TYPES;
-    Texture2D asset = LoadTexture(asset_paths[random]);
-    Vector2 size = { asset.width, asset.height };
-    Rectangle cactus_source_rect = { 0, 0, asset.width, asset.height };
-    Vector2 pos = { 1000.0f, INIT_GROUND_Y - asset.height + 20};
+    Vector2 size = { textures[random].width, textures[random].height };
+    Rectangle cactus_source_rect = { 0, 0, textures[random].width, textures[random].height };
+    Vector2 pos = { 1000.0f, INIT_GROUND_Y - textures[random].height + 20};
     Vector2 vel = { -5.0f, 0.0f };
-    Rectangle cactus_pos_rect = { pos.x, pos.y, asset.width, asset.height };
+    Rectangle cactus_pos_rect = { pos.x, pos.y, textures[random].width, textures[random].height };
 
-    cactus->asset = asset;
+    cactus->asset = textures[random];
     cactus->size = size;
     cactus->cactus_source_rect = cactus_source_rect;
     cactus->pos = pos;
@@ -147,12 +146,11 @@ Cactus* create_cactus() {
 
 Ground* create_ground() {
     Ground *ground = malloc(sizeof(Ground));
-    Texture2D ground_sprite = LoadTexture(asset_paths[GROUND]);
     Vector2 vel = { GROUND_VEL_X, 0.0f };
     Vector2 pos = { 0.0f, INIT_GROUND_Y };
-    Rectangle ground_source_rect = {0, 0, ground_sprite.width, ground_sprite.height };
+    Rectangle ground_source_rect = {0, 0, textures[GROUND].width, textures[GROUND].height };
     
-    ground->ground_frame = ground_sprite;
+    ground->ground_frame = textures[GROUND];
     ground->vel = vel;
     ground->pos = pos;
     ground->ground_source_rect = ground_source_rect;
@@ -162,18 +160,16 @@ Ground* create_ground() {
 
 Dino* create_dino() {
     Dino *dino = malloc(sizeof(Dino));
-    Texture2D dino_run1 = LoadTexture(asset_paths[DINO_RUN1]);
-    Texture2D dino_run2 = LoadTexture(asset_paths[DINO_RUN2]);
-    Vector2 size = { dino_run1.width, dino_run1.height };
+    Vector2 size = { textures[DINO_RUN1].width, textures[DINO_RUN1].height };
     Vector2 vel = { 0.0f, 0.0f };
     Vector2 pos = { INIT_DINO_X, INIT_DINO_Y };
-    Rectangle dino_source_rect = {0, 0, dino_run1.width, dino_run1.height };
-    Rectangle dino_pos_rect = { INIT_DINO_X, INIT_DINO_Y, dino_run1.width, dino_run1.height };
+    Rectangle dino_source_rect = {0, 0, textures[DINO_RUN1].width, textures[DINO_RUN1].height };
+    Rectangle dino_pos_rect = { INIT_DINO_X, INIT_DINO_Y, textures[DINO_RUN1].width, textures[DINO_RUN1].height };
 
     dino->dino_source_rect = dino_source_rect;
     dino->dino_pos_rect = dino_pos_rect;
-    dino->dino_frame_loop[0] = dino_run1;
-    dino->dino_frame_loop[1] = dino_run2;
+    dino->dino_frame_loop[0] = textures[DINO_RUN1];
+    dino->dino_frame_loop[1] = textures[DINO_RUN2];
     dino->size = size;
     dino->pos = pos;
     dino->vel = vel;
@@ -199,6 +195,17 @@ void unload_and_free(Dino *dino, Cactus *cactus, Retry *retry, Ground *ground) {
 }
 
 int main() {
+    const char *asset_paths[ASSET_COUNT] = {
+        "./assets/cactus_1.png",
+        "./assets/cactus_2.png",
+        "./assets/cactus_3.png",
+        "./assets/dino_run1.png",
+        "./assets/dino_run2.png",
+        "./assets/ground.png",
+        "./assets/retry_button.png",
+        "./assets/retry_text.png"
+    };
+
     InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Raylib Dino");
     InitAudioDevice();
     srand(time(NULL));
@@ -209,6 +216,8 @@ int main() {
     int current_frame = 0;
     int cactus_spawn_counter = 0;
     bool game_over = false;
+
+    load_textures(asset_paths);
 
     Dino *dino = create_dino();
     Ground *ground = create_ground();
@@ -278,9 +287,10 @@ int main() {
 
     unload_and_free(dino, cactus, retry, ground);
 
-    // TODO: Optimize game by loading cactus assets only once
+    // TODO: Optimize game by loading assets only once
     // TODO: Handle retry button to start a new game (basically just switch game_over = false)
-    
+    // TODO: Optimize game by using just DrawTexture function as i have not a sprite but different png's
+
     CloseAudioDevice();
     CloseWindow();
 
