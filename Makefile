@@ -4,7 +4,7 @@ LIB_DIR = ./raylib/src
 TARGET = dino
 SRC = dino.c
 CFLAGS = -I$(INCLUDE_DIR)
-LDFLAGS = -L$(LIB_DIR) -lraylib -lm -lpthread -ldl -lrt -lX11
+LDFLAGS = -L$(LIB_DIR) -Wall -Wextra -g -lraylib -lm -lpthread -ldl -lrt -lX11
 
 $(TARGET): $(SRC)
 	$(CC) -o $(TARGET) $(SRC) $(CFLAGS) $(LDFLAGS)

@@ -13,6 +13,8 @@
 #define GRAVITY 2500.0f
 #define CACTUS_TYPES 3
 #define CACTUS_SPAWN_INTERVAL 300
+#define WINDOW_WIDTH 800
+#define WINDOW_HEIGHT 600
 
 typedef enum {
     CACTUS1,
@@ -21,8 +23,17 @@ typedef enum {
     DINO_RUN1,
     DINO_RUN2,
     GROUND,
+    RETRY_BUTTON,
+    RETRY_TEXT,
     ASSET_COUNT
 } AssetName;
+
+typedef struct {
+    Texture2D button_asset;
+    Texture2D text_asset;
+    Vector2 button_pos;
+    Vector2 text_pos;
+} Retry;
 
 typedef struct {
     Vector2 size;
@@ -57,6 +68,8 @@ const char *asset_paths[ASSET_COUNT] = {
     "./assets/dino_run1.png",
     "./assets/dino_run2.png",
     "./assets/ground.png",
+    "./assets/retry_button.png",
+    "./assets/retry_text.png"
 };
 
 
@@ -70,6 +83,9 @@ void move_ground(Ground *ground) {
 
 void move_cactus(Cactus *cactus) {
     cactus->pos = Vector2Add(cactus->pos, cactus->vel);
+
+    cactus->cactus_pos_rect.x = cactus->pos.x;
+    cactus->cactus_pos_rect.y = cactus->pos.y;
 }
 
 void dino_update(Dino *dino, float time) {
@@ -81,6 +97,9 @@ void dino_update(Dino *dino, float time) {
         dino->pos.y = 500;
         dino->vel.y = 0;
     }
+
+    dino->dino_pos_rect.x = dino->pos.x;
+    dino->dino_pos_rect.y = dino->pos.y;
 }
 
 void jump_key_press(Dino *dino) {
@@ -89,6 +108,21 @@ void jump_key_press(Dino *dino) {
 
 void jump_key_release(Dino *dino) {
     if (dino->vel.y < -50.0f) dino->vel.y = -50.0f;
+}
+
+Retry* create_retry_texture() {
+    Retry *retry = malloc(sizeof(Retry));
+    Texture2D button_asset = LoadTexture(asset_paths[RETRY_BUTTON]);
+    Vector2 button_pos = { WINDOW_WIDTH / 2 - button_asset.width / 2,  WINDOW_HEIGHT / 2 - button_asset.height / 2 };
+    Texture2D text_asset = LoadTexture(asset_paths[RETRY_TEXT]);
+    Vector2 text_pos = { WINDOW_WIDTH / 2 - text_asset.width / 2,  WINDOW_HEIGHT / 2 - text_asset.height / 2 - 70};
+
+    retry->button_asset = button_asset;
+    retry->button_pos = button_pos;
+    retry->text_asset = text_asset;
+    retry->text_pos = text_pos;
+
+    return retry;
 }
 
 Cactus* create_cactus() {
@@ -130,28 +164,25 @@ Dino* create_dino() {
     Dino *dino = malloc(sizeof(Dino));
     Texture2D dino_run1 = LoadTexture(asset_paths[DINO_RUN1]);
     Texture2D dino_run2 = LoadTexture(asset_paths[DINO_RUN2]);
-    Vector2 pos = { INIT_DINO_X, INIT_DINO_Y };
     Vector2 size = { dino_run1.width, dino_run1.height };
     Vector2 vel = { 0.0f, 0.0f };
+    Vector2 pos = { INIT_DINO_X, INIT_DINO_Y };
     Rectangle dino_source_rect = {0, 0, dino_run1.width, dino_run1.height };
-    Rectangle dino_pos_rect = { pos.x, pos.y, dino_run1.width, dino_run1.height };
+    Rectangle dino_pos_rect = { INIT_DINO_X, INIT_DINO_Y, dino_run1.width, dino_run1.height };
 
     dino->dino_source_rect = dino_source_rect;
     dino->dino_pos_rect = dino_pos_rect;
     dino->dino_frame_loop[0] = dino_run1;
     dino->dino_frame_loop[1] = dino_run2;
-    dino->pos = pos;
     dino->size = size;
+    dino->pos = pos;
     dino->vel = vel;
 
     return dino;
 }
 
 int main() {
-    const int window_width = 800;
-    const int window_height = 600;
-
-    InitWindow(window_width, window_height, "Raylib Dino");
+    InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Raylib Dino");
     InitAudioDevice();
     srand(time(NULL));
 
@@ -159,39 +190,41 @@ int main() {
 
     int frames_counter = 0;
     int current_frame = 0;
-    int current_line = 0;
-    int key_pressed;
     int cactus_spawn_counter = 0;
+    bool game_over = false;
 
     Dino *dino = create_dino();
     Ground *ground = create_ground();
     Cactus *cactus = NULL;
+    Retry *retry = create_retry_texture();
 
     while (!WindowShouldClose()) {
-        move_ground(ground);
+        if (!game_over) {
+            move_ground(ground);
 
-        if (cactus != NULL) {
-            move_cactus(cactus);
+            if (cactus != NULL) {
+                move_cactus(cactus);
+            }
+
+            if (IsKeyPressed(KEY_SPACE)) {
+                jump_key_press(dino);
+            }
+
+            if (IsKeyReleased(KEY_SPACE)) {
+                jump_key_release(dino);
+            }
+
+            if (cactus_spawn_counter >= CACTUS_SPAWN_INTERVAL) {
+                    cactus = create_cactus();
+                cactus_spawn_counter = 0;
+            }
+
+            if (cactus != NULL && CheckCollisionRecs(dino->dino_pos_rect, cactus->cactus_pos_rect)) {
+                game_over = true;
+            }
+
+            dino_update(dino, GetFrameTime());
         }
-
-        if (IsKeyPressed(KEY_SPACE)) {
-            jump_key_press(dino);
-        }
-
-        if (IsKeyReleased(KEY_SPACE)) {
-            jump_key_release(dino);
-        }
-
-        if (cactus_spawn_counter >= CACTUS_SPAWN_INTERVAL) {
-                cactus = create_cactus();
-            cactus_spawn_counter = 0;
-        }
-
-        if (cactus != NULL && CheckCollisionRecs(dino->dino_pos_rect, cactus->cactus_pos_rect)) {
-            printf("Collision\n");
-        }
-
-        dino_update(dino, GetFrameTime());
 
         BeginDrawing();
         ClearBackground(RAYWHITE);
@@ -218,11 +251,25 @@ int main() {
             DrawTextureRec(cactus->asset, cactus->cactus_source_rect, cactus->pos, WHITE);
         }
 
+        if (game_over) {
+            DrawTexture(retry->button_asset, retry->button_pos.x, retry->button_pos.y, WHITE);
+            DrawTexture(retry->text_asset, retry->text_pos.x, retry->text_pos.y, WHITE);
+        }
+
         EndDrawing();
 
         cactus_spawn_counter++;
     }
 
+    for (int i = 0; i < DINO_FRAMES_NUM; i++) {
+        UnloadTexture(dino->dino_frame_loop[i]);
+    }
+    UnloadTexture(ground->ground_frame);
+    if (cactus != NULL) {
+        UnloadTexture(cactus->asset);
+    }
+
+    free(cactus);
     free(dino);
     free(ground);
     CloseAudioDevice();
