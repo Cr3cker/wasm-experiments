@@ -66,6 +66,37 @@ void load_textures(const char* asset_paths[]) {
     }
 }
 
+void render_common(Dino *dino, Ground *ground, Cactus *cactus, int current_frame) {
+    DrawTexture(dino->dino_frame_loop[current_frame], dino->pos.x, dino->pos.y, WHITE);
+    DrawTexture(ground->ground_frame, ground->pos.x, ground->pos.y, WHITE);
+    DrawTexture(ground->ground_frame, ground->pos.x + ground->ground_frame.width, ground->pos.y, WHITE);
+
+    if (cactus != NULL) {
+        DrawTexture(cactus->asset, cactus->pos.x, cactus->pos.y, WHITE);
+    }
+}
+
+void render_game(Dino *dino, Ground *ground, Cactus *cactus, int current_frame) {
+    BeginDrawing();
+    ClearBackground(RAYWHITE);
+
+    render_common(dino, ground, cactus, current_frame);
+
+    EndDrawing();
+}
+
+void render_game_over(Dino *dino, Ground *ground, Cactus *cactus, Retry *retry, int current_frame) {
+    BeginDrawing();
+    ClearBackground(RAYWHITE);
+
+    render_common(dino, ground, cactus, current_frame);
+
+    DrawTexture(retry->button_asset, retry->button_pos.x, retry->button_pos.y, WHITE);
+    DrawTexture(retry->text_asset, retry->text_pos.x, retry->text_pos.y, WHITE);
+
+    EndDrawing();
+}
+
 void move_ground(Ground *ground) {
     ground->pos = Vector2Add(ground->pos, ground->vel);
     
@@ -185,6 +216,26 @@ void unload_and_free(Dino *dino, Cactus *cactus, Retry *retry, Ground *ground) {
     free(ground);
 }
 
+void update(Ground* ground, Cactus *cactus, Dino *dino, float time) {
+    dino_update(dino, time);
+
+    if (cactus != NULL) {
+        move_cactus(cactus);
+    }
+
+    move_ground(ground);
+}
+
+void handle_input(Dino *dino) {
+    if (IsKeyPressed(KEY_SPACE)) {
+        jump_key_press(dino);
+    }
+
+    if (IsKeyReleased(KEY_SPACE)) {
+        jump_key_release(dino);
+    }
+}
+
 int main() {
     const char *asset_paths[ASSET_COUNT] = {
         "./assets/cactus_1.png",
@@ -216,23 +267,13 @@ int main() {
     Retry *retry = create_retry_texture();
 
     while (!WindowShouldClose()) {
+        float dt = GetFrameTime();
+
         if (!game_over) {
-            move_ground(ground);
-
-            if (cactus != NULL) {
-                move_cactus(cactus);
-            }
-
-            if (IsKeyPressed(KEY_SPACE)) {
-                jump_key_press(dino);
-            }
-
-            if (IsKeyReleased(KEY_SPACE)) {
-                jump_key_release(dino);
-            }
+            handle_input(dino);
 
             if (cactus_spawn_counter >= CACTUS_SPAWN_INTERVAL) {
-                    cactus = create_cactus();
+                cactus = create_cactus();
                 cactus_spawn_counter = 0;
             }
 
@@ -240,44 +281,24 @@ int main() {
                 game_over = true;
             }
 
-            dino_update(dino, GetFrameTime());
-
-            BeginDrawing();
-            ClearBackground(RAYWHITE);
+            update(ground, cactus, dino, dt);
 
             frames_counter++;
-
             if (frames_counter > 10) {
-                current_frame++;
-
-                if (current_frame >= 2) {
-                    current_frame = 0;
-                }
-
+                current_frame = (current_frame + 1) % 2;
                 frames_counter = 0;
             }
-
-            DrawTexture(dino->dino_frame_loop[current_frame], dino->pos.x, dino->pos.y, WHITE);
-            DrawTexture(ground->ground_frame, ground->pos.x, ground->pos.y, WHITE);
-            DrawTexture(ground->ground_frame, ground->pos.x + ground->ground_frame.width, ground->pos.y, WHITE);
-
-            if (cactus != NULL) {
-                DrawTexture(cactus->asset, cactus->pos.x, cactus->pos.y, WHITE);
-            }
-
+            
+            render_game(dino, ground, cactus, current_frame);
             cactus_spawn_counter++;
         } else {
-            DrawTexture(retry->button_asset, retry->button_pos.x, retry->button_pos.y, WHITE);
-            DrawTexture(retry->text_asset, retry->text_pos.x, retry->text_pos.y, WHITE);
+            render_game_over(dino, ground, cactus, retry, current_frame);
         }
-
-        EndDrawing();
     }
 
     unload_and_free(dino, cactus, retry, ground);
 
     // TODO: Handle retry button to start a new game (basically just switch game_over = false)
-    // TODO: Optimize game by using just DrawTexture function as i have not a sprite but different png's
 
     CloseAudioDevice();
     CloseWindow();
