@@ -181,6 +181,23 @@ Dino* create_dino() {
     return dino;
 }
 
+void unload_and_free(Dino *dino, Cactus *cactus, Retry *retry, Ground *ground) {
+    for (int i = 0; i < DINO_FRAMES_NUM; i++) {
+        UnloadTexture(dino->dino_frame_loop[i]);
+    }
+    UnloadTexture(ground->ground_frame);
+    UnloadTexture(retry->button_asset);
+    UnloadTexture(retry->text_asset);
+    if (cactus != NULL) {
+        UnloadTexture(cactus->asset);
+    }
+
+    free(cactus);
+    free(retry);
+    free(dino);
+    free(ground);
+}
+
 int main() {
     InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Raylib Dino");
     InitAudioDevice();
@@ -224,54 +241,46 @@ int main() {
             }
 
             dino_update(dino, GetFrameTime());
-        }
 
-        BeginDrawing();
-        ClearBackground(RAYWHITE);
+            BeginDrawing();
+            ClearBackground(RAYWHITE);
 
-        frames_counter++;
+            frames_counter++;
 
-        if (frames_counter > 10) {
-            current_frame++;
+            if (frames_counter > 10) {
+                current_frame++;
 
-            if (current_frame >= 2) {
-                current_frame = 0;
+                if (current_frame >= 2) {
+                    current_frame = 0;
+                }
+
+                frames_counter = 0;
             }
 
-            frames_counter = 0;
-        }
+            dino->dino_source_rect.x = current_frame * dino->dino_frame_loop[current_frame].width;
 
-        dino->dino_source_rect.x = current_frame * dino->dino_frame_loop[current_frame].width;
+            DrawTextureRec(dino->dino_frame_loop[current_frame], dino->dino_source_rect, dino->pos, WHITE);
+            DrawTextureRec(ground->ground_frame, ground->ground_source_rect, ground->pos, WHITE);
+            DrawTextureRec(ground->ground_frame, ground->ground_source_rect, (Vector2){ground->pos.x + ground->ground_frame.width, ground->pos.y}, WHITE);
 
-        DrawTextureRec(dino->dino_frame_loop[current_frame], dino->dino_source_rect, dino->pos, WHITE);
-        DrawTextureRec(ground->ground_frame, ground->ground_source_rect, ground->pos, WHITE);
-        DrawTextureRec(ground->ground_frame, ground->ground_source_rect, (Vector2){ground->pos.x + ground->ground_frame.width, ground->pos.y}, WHITE);
+            if (cactus != NULL) {
+                DrawTextureRec(cactus->asset, cactus->cactus_source_rect, cactus->pos, WHITE);
+            }
 
-        if (cactus != NULL) {
-            DrawTextureRec(cactus->asset, cactus->cactus_source_rect, cactus->pos, WHITE);
-        }
-
-        if (game_over) {
+            cactus_spawn_counter++;
+        } else {
             DrawTexture(retry->button_asset, retry->button_pos.x, retry->button_pos.y, WHITE);
             DrawTexture(retry->text_asset, retry->text_pos.x, retry->text_pos.y, WHITE);
         }
 
         EndDrawing();
-
-        cactus_spawn_counter++;
     }
 
-    for (int i = 0; i < DINO_FRAMES_NUM; i++) {
-        UnloadTexture(dino->dino_frame_loop[i]);
-    }
-    UnloadTexture(ground->ground_frame);
-    if (cactus != NULL) {
-        UnloadTexture(cactus->asset);
-    }
+    unload_and_free(dino, cactus, retry, ground);
 
-    free(cactus);
-    free(dino);
-    free(ground);
+    // TODO: Optimize game by loading cactus assets only once
+    // TODO: Handle retry button to start a new game (basically just switch game_over = false)
+    
     CloseAudioDevice();
     CloseWindow();
 
