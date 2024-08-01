@@ -8,7 +8,7 @@
 #define DINO_FRAMES_NUM 2
 #define INIT_DINO_X 30.0f
 #define INIT_DINO_Y 500.0f
-#define GROUND_VEL_X -5.0f
+#define GROUND_VEL_X -10.0f
 #define INIT_GROUND_Y 575.0f
 #define GRAVITY 2500.0f
 #define CACTUS_TYPES 3
@@ -17,6 +17,7 @@
 #define WINDOW_HEIGHT 600
 
 Texture2D *textures;
+Sound *sounds;
 
 typedef enum {
     CACTUS1,
@@ -29,6 +30,13 @@ typedef enum {
     RETRY_TEXT,
     ASSET_COUNT
 } AssetName;
+
+typedef enum {
+    DIE,
+    JUMP,
+    POINT,
+    SOUND_COUNT
+} SoundName;
 
 typedef struct {
     Texture2D button_asset;
@@ -59,10 +67,17 @@ typedef struct {
     Texture2D ground_frame;
 } Ground;
 
-void load_textures(const char* asset_paths[]) {
+void load_textures(const char *asset_paths[]) {
     textures = malloc(ASSET_COUNT * sizeof(Texture2D));
     for (int i = 0; i < ASSET_COUNT; i++) {
         textures[i] = LoadTexture(asset_paths[i]);
+    }
+}
+
+void load_sounds(const char *sound_paths[]) {
+    sounds = malloc(SOUND_COUNT * sizeof(Sound));
+    for (int i = 0; i < SOUND_COUNT; i++) {
+        sounds[i] = LoadSound(sound_paths[i]);
     }
 }
 
@@ -127,6 +142,7 @@ void dino_update(Dino *dino, float time) {
 }
 
 void jump_key_press(Dino *dino) {
+    PlaySound(sounds[JUMP]);
     if (dino->pos.y >= 500) dino->vel.y = -1000.0f;
 }
 
@@ -158,8 +174,8 @@ Cactus* create_cactus() {
     int random = rand() % CACTUS_TYPES;
     Vector2 size = { textures[random].width, textures[random].height };
     Vector2 pos = { 1000.0f, INIT_GROUND_Y - textures[random].height + 20};
-    Vector2 vel = { -5.0f, 0.0f };
-    Rectangle cactus_pos_rect = { pos.x, pos.y, textures[random].width, textures[random].height };
+    Vector2 vel = { -10.0f, 0.0f };
+    Rectangle cactus_pos_rect = { pos.x, pos.y, textures[random].width, textures[random].height + 20 };
 
     cactus->asset = textures[random];
     cactus->size = size;
@@ -187,7 +203,7 @@ Dino* create_dino() {
     Vector2 size = { textures[DINO_RUN1].width, textures[DINO_RUN1].height };
     Vector2 vel = { 0.0f, 0.0f };
     Vector2 pos = { INIT_DINO_X, INIT_DINO_Y };
-    Rectangle dino_pos_rect = { INIT_DINO_X, INIT_DINO_Y, textures[DINO_RUN1].width, textures[DINO_RUN1].height };
+    Rectangle dino_pos_rect = { INIT_DINO_X, INIT_DINO_Y, textures[DINO_RUN1].width - 5, textures[DINO_RUN1].height - 5 };
 
     dino->dino_pos_rect = dino_pos_rect;
     dino->dino_frame_loop[0] = textures[DINO_RUN1];
@@ -202,6 +218,9 @@ Dino* create_dino() {
 void unload_and_free(Dino *dino, Cactus *cactus, Retry *retry, Ground *ground) {
     for (int i = 0; i < DINO_FRAMES_NUM; i++) {
         UnloadTexture(dino->dino_frame_loop[i]);
+    }
+    for (int i = 0; i < SOUND_COUNT; i++) {
+        UnloadSound(sounds[i]);
     }
     UnloadTexture(ground->ground_frame);
     UnloadTexture(retry->button_asset);
@@ -226,6 +245,41 @@ void update(Ground* ground, Cactus *cactus, Dino *dino, float time) {
     move_ground(ground);
 }
 
+void reset_game(Dino *dino, Ground *ground, Cactus **cactus, int *frames_counter, int *current_frame, int *cactus_spawn_counter, bool *game_over) {
+    dino->pos = (Vector2){INIT_DINO_X, INIT_DINO_Y};
+    dino->vel = (Vector2){0.0f, 0.0f};
+    dino->dino_pos_rect.x = INIT_DINO_X;
+    dino->dino_pos_rect.y = INIT_DINO_Y;
+
+    ground->pos = (Vector2){0.0f, INIT_GROUND_Y};
+    ground->vel = (Vector2){GROUND_VEL_X, 0.0f};
+
+    if (*cactus != NULL) {
+        free(*cactus);
+        *cactus = NULL;
+    }
+
+    *frames_counter = 0;
+    *current_frame = 0;
+    *cactus_spawn_counter = 0;
+    *game_over = false;
+}
+
+void restart_game(Retry *retry, Dino *dino, Ground *ground, Cactus **cactus, int *frames_counter, int *current_frame, int *cactus_spawn_counter, bool *game_over) {
+    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+        int mouse_x = GetMouseX();
+        int mouse_y = GetMouseY();
+        if (
+            mouse_x >= retry->button_pos.x && 
+            mouse_x <= retry->button_pos.x + retry->button_asset.width &&
+            mouse_y >= retry->button_pos.y &&
+            mouse_y <= retry->button_pos.y + retry->button_asset.height
+        ) {
+            reset_game(dino, ground, cactus, frames_counter, current_frame, cactus_spawn_counter, game_over);
+        }
+    }
+}
+
 void handle_input(Dino *dino) {
     if (IsKeyPressed(KEY_SPACE)) {
         jump_key_press(dino);
@@ -246,6 +300,13 @@ int main() {
         "./assets/ground.png",
         "./assets/retry_button.png",
         "./assets/retry_text.png"
+        
+    };
+
+    const char *sound_paths[SOUND_COUNT] = {
+        "./sounds/die_sound.mp3",
+        "./sounds/jump_sound.mp3",
+        "./sounds/point_sound.mp3"
     };
 
     InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Raylib Dino");
@@ -255,11 +316,11 @@ int main() {
     SetTargetFPS(60);
 
     int frames_counter = 0;
-    int current_frame = 0;
     int cactus_spawn_counter = 0;
     bool game_over = false;
 
     load_textures(asset_paths);
+    load_sounds(sound_paths);
 
     Dino *dino = create_dino();
     Ground *ground = create_ground();
@@ -270,6 +331,7 @@ int main() {
         float dt = GetFrameTime();
 
         if (!game_over) {
+            DrawFPS(50, 50);
             handle_input(dino);
 
             if (cactus_spawn_counter >= CACTUS_SPAWN_INTERVAL) {
@@ -278,13 +340,14 @@ int main() {
             }
 
             if (cactus != NULL && CheckCollisionRecs(dino->dino_pos_rect, cactus->cactus_pos_rect)) {
+                PlaySound(sounds[DIE]);
                 game_over = true;
             }
 
             update(ground, cactus, dino, dt);
 
             frames_counter++;
-            if (frames_counter > 10) {
+            if (frames_counter > 5) {
                 current_frame = (current_frame + 1) % 2;
                 frames_counter = 0;
             }
@@ -293,14 +356,20 @@ int main() {
             cactus_spawn_counter++;
         } else {
             render_game_over(dino, ground, cactus, retry, current_frame);
+            restart_game(retry, dino, ground, &cactus, &frames_counter, &current_frame, &cactus_spawn_counter, &game_over);
         }
     }
 
     unload_and_free(dino, cactus, retry, ground);
 
-    // TODO: Handle retry button to start a new game (basically just switch game_over = false)
     // TODO: Minimize dynamic memory allocation for web
     // TODO: Try to optimize game through js
+    // TODO: Add sounds to the game
+        // load sounds
+        // play sounds
+        // unload sounds
+    // TODO: Handle crouching (add crouching frame)
+    // TODO: Increase difficulty (speed) of the game
 
     CloseAudioDevice();
     CloseWindow();
