@@ -11,6 +11,7 @@ dino_web: dino.c
 	emcc -o index.html dino.c -Wall -std=c99 -D_DEFAULT_SOURCE -Wno-missing-braces -Wunused-result -Os \
 	-I. -I $(INCLUDE_DIR) -I $(INCLUDE_DIR)/external -L. -L $(LIB_DIR) \
 	-s USE_GLFW=3 -s ASYNCIFY -s TOTAL_MEMORY=67108864 -s FORCE_FILESYSTEM=1 --shell-file custom_shell.html \
+	--preload-file assets \
 	$(LIB_DIR)/web/libraylib.a -DPLATFORM_WEB \
 	-s 'EXPORTED_FUNCTIONS=["_free","_malloc","_main"]' -s EXPORTED_RUNTIME_METHODS=ccall
 
