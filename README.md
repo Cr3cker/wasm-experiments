@@ -12,6 +12,11 @@ This project demonstrates how to create a simple game structure in C, compile it
 make dino
 ```
 
+### To compile the C code natively:
+```bash
+make dino.html
+```
+
 ### To clean up the executable
 ```bash
 make clean
