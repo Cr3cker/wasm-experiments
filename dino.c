@@ -28,6 +28,8 @@ typedef enum {
     GROUND,
     RETRY_BUTTON,
     RETRY_TEXT,
+    DINO_DUCK1,
+    DINO_DUCK2,
     ASSET_COUNT
 } AssetName;
 
@@ -81,38 +83,38 @@ void load_sounds(const char *sound_paths[]) {
     }
 }
 
-void render_common(Dino *dino, Ground *ground, Cactus *cactus, int current_frame) {
-    DrawTexture(dino->dino_frame_loop[current_frame], dino->pos.x, dino->pos.y, WHITE);
-    DrawTexture(ground->ground_frame, ground->pos.x, ground->pos.y, WHITE);
-    DrawTexture(ground->ground_frame, ground->pos.x + ground->ground_frame.width, ground->pos.y, WHITE);
-
+void render_cactus(Cactus *cactus) {
     if (cactus != NULL) {
         DrawTexture(cactus->asset, cactus->pos.x, cactus->pos.y, WHITE);
     }
+}
+
+void render_ground(Ground *ground) {
+    DrawTexture(ground->ground_frame, ground->pos.x, ground->pos.y, WHITE);
+    DrawTexture(ground->ground_frame, ground->pos.x + ground->ground_frame.width, ground->pos.y, WHITE);
+}
+
+void render_dino(Dino *dino, int current_frame) {
+    DrawTexture(dino->dino_frame_loop[current_frame], dino->pos.x, dino->pos.y, WHITE);
+}
+
+void render_game_over(Retry *retry) {
+    DrawTexture(retry->button_asset, retry->button_pos.x, retry->button_pos.y, WHITE);
+    DrawTexture(retry->text_asset, retry->text_pos.x, retry->text_pos.y, WHITE);
 }
 
 void render_game(Dino *dino, Ground *ground, Cactus *cactus, int current_frame) {
     BeginDrawing();
     ClearBackground(RAYWHITE);
 
-    render_common(dino, ground, cactus, current_frame);
+    render_ground(ground);
+    render_dino(dino, current_frame);
+    render_cactus(cactus);
 
     EndDrawing();
 }
 
-void render_game_over(Dino *dino, Ground *ground, Cactus *cactus, Retry *retry, int current_frame) {
-    BeginDrawing();
-    ClearBackground(RAYWHITE);
-
-    render_common(dino, ground, cactus, current_frame);
-
-    DrawTexture(retry->button_asset, retry->button_pos.x, retry->button_pos.y, WHITE);
-    DrawTexture(retry->text_asset, retry->text_pos.x, retry->text_pos.y, WHITE);
-
-    EndDrawing();
-}
-
-void move_ground(Ground *ground) {
+void update_ground(Ground *ground) {
     ground->pos = Vector2Add(ground->pos, ground->vel);
     
     if (ground->pos.x <= -ground->ground_frame.width) {
@@ -120,14 +122,14 @@ void move_ground(Ground *ground) {
     }
 }
 
-void move_cactus(Cactus *cactus) {
+void update_cactus(Cactus *cactus) {
     cactus->pos = Vector2Add(cactus->pos, cactus->vel);
 
     cactus->cactus_pos_rect.x = cactus->pos.x;
     cactus->cactus_pos_rect.y = cactus->pos.y;
 }
 
-void dino_update(Dino *dino, float time) {
+void update_dino(Dino *dino, float time) {
     Vector2 scaled_vel = Vector2Scale(dino->vel, time);
     dino->pos = Vector2Add(dino->pos, scaled_vel);
     dino->vel.y += GRAVITY * time;
@@ -235,14 +237,14 @@ void unload_and_free(Dino *dino, Cactus *cactus, Retry *retry, Ground *ground) {
     free(ground);
 }
 
-void update(Ground* ground, Cactus *cactus, Dino *dino, float time) {
-    dino_update(dino, time);
+void update_game(Ground* ground, Cactus *cactus, Dino *dino, float time) {
+    update_dino(dino, time);
 
     if (cactus != NULL) {
-        move_cactus(cactus);
+        update_cactus(cactus);
     }
 
-    move_ground(ground);
+    update_ground(ground);
 }
 
 void reset_game(Dino *dino, Ground *ground, Cactus **cactus, int *frames_counter, int *current_frame, int *cactus_spawn_counter, bool *game_over) {
@@ -299,8 +301,9 @@ int main() {
         "./assets/dino_run2.png",
         "./assets/ground.png",
         "./assets/retry_button.png",
-        "./assets/retry_text.png"
-        
+        "./assets/retry_text.png",
+        "./assets/dino_duck1.png",
+        "./assets/dino_duck2.png"
     };
 
     const char *sound_paths[SOUND_COUNT] = {
@@ -317,6 +320,7 @@ int main() {
 
     int frames_counter = 0;
     int cactus_spawn_counter = 0;
+    int current_frame = 0;
     bool game_over = false;
 
     load_textures(asset_paths);
@@ -330,8 +334,16 @@ int main() {
     while (!WindowShouldClose()) {
         float dt = GetFrameTime();
 
+        frames_counter++;
+        if (frames_counter > 5) {
+            current_frame = (current_frame + 1) % 2;
+            frames_counter = 0;
+        }
+
+        DrawFPS(50, 50);
+        render_game(dino, ground, cactus, current_frame);
+
         if (!game_over) {
-            DrawFPS(50, 50);
             handle_input(dino);
 
             if (cactus_spawn_counter >= CACTUS_SPAWN_INTERVAL) {
@@ -344,18 +356,10 @@ int main() {
                 game_over = true;
             }
 
-            update(ground, cactus, dino, dt);
-
-            frames_counter++;
-            if (frames_counter > 5) {
-                current_frame = (current_frame + 1) % 2;
-                frames_counter = 0;
-            }
-            
-            render_game(dino, ground, cactus, current_frame);
+            update_game(ground, cactus, dino, dt);
             cactus_spawn_counter++;
         } else {
-            render_game_over(dino, ground, cactus, retry, current_frame);
+            render_game_over(retry);
             restart_game(retry, dino, ground, &cactus, &frames_counter, &current_frame, &cactus_spawn_counter, &game_over);
         }
     }
