@@ -368,12 +368,12 @@ int main() {
 
     // TODO: Minimize dynamic memory allocation for web
     // TODO: Try to optimize game through js
-    // TODO: Add sounds to the game
-        // load sounds
-        // play sounds
-        // unload sounds
     // TODO: Handle crouching (add crouching frame)
     // TODO: Increase difficulty (speed) of the game
+
+    // Now we have frame loop in dino and we have to render it differently
+    // the idea is to separate render and update functions to make it easier to handle dino behaviour
+    // So we need to replace dino_frame_loop on current_dino_frame for example and when we update_dino we just replace frames using delta time
 
     CloseAudioDevice();
     CloseWindow();
