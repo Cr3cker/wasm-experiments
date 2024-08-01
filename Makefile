@@ -16,4 +16,4 @@ dino_web: dino.c
 	-s 'EXPORTED_FUNCTIONS=["_free","_malloc","_main"]' -s EXPORTED_RUNTIME_METHODS=ccall
 
 clean:
-	del dino.exe index.html dino.data
+	del dino.exe index.html index.data index.js index.wasm
