@@ -252,7 +252,7 @@ int main() {
     InitAudioDevice();
     srand(time(NULL));
 
-    SetTargetFPS(120);
+    SetTargetFPS(60);
 
     int frames_counter = 0;
     int current_frame = 0;
@@ -299,6 +299,8 @@ int main() {
     unload_and_free(dino, cactus, retry, ground);
 
     // TODO: Handle retry button to start a new game (basically just switch game_over = false)
+    // TODO: Minimize dynamic memory allocation for web
+    // TODO: Try to optimize game through js
 
     CloseAudioDevice();
     CloseWindow();
