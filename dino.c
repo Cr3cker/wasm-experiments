@@ -15,6 +15,8 @@
 #define CACTUS_SPAWN_INTERVAL 300
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600
+#define MAX_CACTI_NUM 10
+#define INIT_CACTUS_X 900.0f
 
 Texture2D* textures;
 Sound* sounds;
@@ -116,14 +118,18 @@ void render_game_over(Retry* retry)
     DrawTexture(retry->text_asset, retry->text_pos.x, retry->text_pos.y, WHITE);
 }
 
-void render_game(Dino* dino, Ground* ground, Cactus* cactus)
+void render_game(Dino* dino, Ground* ground, Cactus* cacti[], int array_length)
 {
     BeginDrawing();
     ClearBackground(RAYWHITE);
 
     render_ground(ground);
     render_dino(dino);
-    render_cactus(cactus);
+
+    for (int i = 0; i < array_length; i++)
+    {
+        render_cactus(cacti[i]);
+    }
 
     EndDrawing();
 }
@@ -209,12 +215,12 @@ Retry* create_retry_texture()
     return retry;
 }
 
-Cactus* create_cactus()
+Cactus* create_cactus(float* init_x)
 {
     Cactus* cactus = malloc(sizeof(Cactus));
     int random = rand() % CACTUS_TYPES;
     Vector2 size = {textures[random].width, textures[random].height};
-    Vector2 pos = {1000.0f, INIT_GROUND_Y - textures[random].height + 20};
+    Vector2 pos = {*init_x, INIT_GROUND_Y - textures[random].height + 20};
     Vector2 vel = {-10.0f, 0.0f};
     Rectangle cactus_pos_rect = {pos.x, pos.y, textures[random].width,
                                  textures[random].height + 20};
@@ -224,6 +230,8 @@ Cactus* create_cactus()
     cactus->pos = pos;
     cactus->vel = vel;
     cactus->cactus_pos_rect = cactus_pos_rect;
+
+    init_x += rand() % 50;
 
     return cactus;
 }
@@ -260,7 +268,7 @@ Dino* create_dino()
     return dino;
 }
 
-void unload_and_free(Dino* dino, Cactus* cactus, Retry* retry, Ground* ground)
+void unload_and_free(Dino* dino, Cactus* cacti[], Retry* retry, Ground* ground, int array_length)
 {
     for (int i = 0; i < ASSET_COUNT; i++)
     {
@@ -270,20 +278,27 @@ void unload_and_free(Dino* dino, Cactus* cactus, Retry* retry, Ground* ground)
     {
         UnloadSound(sounds[i]);
     }
-
-    free(cactus);
+    for (int i = 0; i < array_length; i++)
+    {
+        free(cacti[i]);
+    }
+    free(cacti);
     free(retry);
     free(dino);
     free(ground);
 }
 
-void update_game(Ground* ground, Cactus* cactus, Dino* dino, float time, int frame_flag)
+void update_game(Ground* ground, Cactus* cacti[], Dino* dino, float time, int frame_flag,
+                 int array_length)
 {
     update_dino(dino, time, frame_flag);
 
-    if (cactus != NULL)
+    for (int i = 0; i < array_length; i++)
     {
-        update_cactus(cactus);
+        if (cacti[i] != NULL)
+        {
+            update_cactus(cacti[i]);
+        }
     }
 
     update_ground(ground);
@@ -354,6 +369,17 @@ void handle_input(Dino* dino, int* frame_flag)
     }
 }
 
+void remove_element(Cactus* cacti[], int* array_length)
+{
+    free(cacti[0]);
+    for (int i = 1; i < *array_length; i++)
+    {
+        cacti[i - 1] = cacti[i];
+    }
+
+    (*array_length)--;
+}
+
 int main()
 {
     const char* asset_paths[ASSET_COUNT] = {"./assets/cactus_1.png",     "./assets/cactus_2.png",
@@ -376,13 +402,15 @@ int main()
     int current_frame = 0;
     bool game_over = false;
     int frame_flag = 0;
+    int array_length = MAX_CACTI_NUM;
+    float init_cactus_x = INIT_CACTUS_X;
 
     load_textures(asset_paths);
     load_sounds(sound_paths);
 
     Dino* dino = create_dino();
     Ground* ground = create_ground();
-    Cactus* cactus = NULL;
+    Cactus* cacti[MAX_CACTI_NUM] = {0};
     Retry* retry = create_retry_texture();
 
     while (!WindowShouldClose())
@@ -390,7 +418,7 @@ int main()
         float dt = GetFrameTime();
 
         DrawFPS(50, 50);
-        render_game(dino, ground, cactus);
+        render_game(dino, ground, cacti, array_length);
 
         if (!game_over)
         {
@@ -403,42 +431,44 @@ int main()
                 frames_counter = 0;
             }
 
-            if (cactus_spawn_counter >= CACTUS_SPAWN_INTERVAL)
+            if (cactus_spawn_counter >= 300)
             {
-                cactus = create_cactus();
+                remove_element(cacti, &array_length);
+                Cactus* cactus = create_cactus(&init_cactus_x);
+                cacti[array_length - 1] = cactus;
+                array_length++;
                 cactus_spawn_counter = 0;
             }
 
-            if (cactus != NULL && CheckCollisionRecs(dino->dino_pos_rect, cactus->cactus_pos_rect))
+            for (int i = 0; i < array_length; i++)
             {
-                PlaySound(sounds[DIE]);
-                game_over = true;
+                if (cacti[i] != NULL &&
+                    CheckCollisionRecs(dino->dino_pos_rect, cacti[i]->cactus_pos_rect))
+                {
+                    PlaySound(sounds[DIE]);
+                    game_over = true;
+                }
             }
 
-            update_game(ground, cactus, dino, dt, frame_flag);
+            update_game(ground, cacti, dino, dt, frame_flag, array_length);
 
             cactus_spawn_counter++;
         }
         else
         {
             render_game_over(retry);
-            restart_game(retry, dino, ground, &cactus, &frames_counter, &current_frame,
+            restart_game(retry, dino, ground, cacti, &frames_counter, &current_frame,
                          &cactus_spawn_counter, &game_over, &frame_flag);
         }
     }
 
-    unload_and_free(dino, cactus, retry, ground);
+    unload_and_free(dino, cacti, retry, ground, array_length);
 
     // TODO: Minimize dynamic memory allocation for web
     // TODO: Try to optimize game through js
-    // TODO: Handle crouching (add crouching frame)
     // TODO: Increase difficulty (speed) of the game
-
-    // TODO: Now we have frame loop in dino and we have to render it differently
-    // the idea is to separate render and update functions to make it easier to
-    // handle dino behaviour So we need to replace dino_frame_loop on
-    // current_dino_frame for example and when we update_dino we just replace
-    // frames using delta time
+    // TODO: Refactor the cactus spawning
+    // TODO: Change the dino pos rect height when crouching to avoid obstacles
 
     CloseAudioDevice();
     CloseWindow();
