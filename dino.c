@@ -17,6 +17,8 @@
 #define WINDOW_HEIGHT 600
 #define MAX_CACTI_NUM 10
 #define INIT_CACTUS_X 900.0f
+#define MIN_CACTUS_DISTANCE 500
+#define MAX_CACTUS_DISTANCE 1150
 
 Texture2D* textures;
 Sound* sounds;
@@ -126,8 +128,7 @@ void render_game(Dino* dino, Ground* ground, Cactus* cacti[], int array_length)
     render_ground(ground);
     render_dino(dino);
 
-    for (int i = 0; i < array_length; i++)
-    {
+    for (int i = 0; i < array_length; i++) {
         render_cactus(cacti[i]);
     }
 
@@ -231,7 +232,7 @@ Cactus* create_cactus(float* init_x)
     cactus->vel = vel;
     cactus->cactus_pos_rect = cactus_pos_rect;
 
-    init_x += rand() % 50;
+    *init_x += MIN_CACTUS_DISTANCE + (rand() % (MAX_CACTUS_DISTANCE - MIN_CACTUS_DISTANCE));
 
     return cactus;
 }
@@ -278,8 +279,7 @@ void unload_and_free(Dino* dino, Cactus* cacti[], Retry* retry, Ground* ground, 
     {
         UnloadSound(sounds[i]);
     }
-    for (int i = 0; i < array_length; i++)
-    {
+    for (int i = 0; i < array_length; i++) {
         free(cacti[i]);
     }
     free(cacti);
@@ -288,17 +288,16 @@ void unload_and_free(Dino* dino, Cactus* cacti[], Retry* retry, Ground* ground, 
     free(ground);
 }
 
-void update_game(Ground* ground, Cactus* cacti[], Dino* dino, float time, int frame_flag,
-                 int array_length)
+void update_game(Ground* ground, Cactus* cacti[], Dino* dino, float time, int frame_flag, int array_length)
 {
     update_dino(dino, time, frame_flag);
 
-    for (int i = 0; i < array_length; i++)
-    {
+    for (int i = 0; i < array_length; i++) {
         if (cacti[i] != NULL)
         {
             update_cactus(cacti[i]);
         }
+
     }
 
     update_ground(ground);
@@ -369,15 +368,11 @@ void handle_input(Dino* dino, int* frame_flag)
     }
 }
 
-void remove_element(Cactus* cacti[], int* array_length)
-{
-    free(cacti[0]);
-    for (int i = 1; i < *array_length; i++)
-    {
-        cacti[i - 1] = cacti[i];
+void initialize_cacti(Cactus* cacti[], int array_length, float* init_cactus_x) {
+    *init_cactus_x = INIT_CACTUS_X;
+    for (int i = 0; i < array_length; i++) {
+        cacti[i] = create_cactus(init_cactus_x);
     }
-
-    (*array_length)--;
 }
 
 int main()
@@ -410,8 +405,10 @@ int main()
 
     Dino* dino = create_dino();
     Ground* ground = create_ground();
-    Cactus* cacti[MAX_CACTI_NUM] = {0};
+    Cactus* cacti[MAX_CACTI_NUM] = { 0 };
     Retry* retry = create_retry_texture();
+
+    initialize_cacti(cacti, array_length, &init_cactus_x);
 
     while (!WindowShouldClose())
     {
@@ -431,24 +428,18 @@ int main()
                 frames_counter = 0;
             }
 
-            if (cactus_spawn_counter >= 300)
+            if (cactus_spawn_counter >= 600)
             {
-                remove_element(cacti, &array_length);
-                Cactus* cactus = create_cactus(&init_cactus_x);
-                cacti[array_length - 1] = cactus;
-                array_length++;
+                initialize_cacti(cacti, array_length, &init_cactus_x);
                 cactus_spawn_counter = 0;
             }
 
-            for (int i = 0; i < array_length; i++)
-            {
-                if (cacti[i] != NULL &&
-                    CheckCollisionRecs(dino->dino_pos_rect, cacti[i]->cactus_pos_rect))
-                {
+            for (int i = 0; i < array_length; i++) {
+                if (cacti[i] != NULL && CheckCollisionRecs(dino->dino_pos_rect, cacti[i]->cactus_pos_rect)) {
                     PlaySound(sounds[DIE]);
                     game_over = true;
                 }
-            }
+            } 
 
             update_game(ground, cacti, dino, dt, frame_flag, array_length);
 
@@ -469,6 +460,8 @@ int main()
     // TODO: Increase difficulty (speed) of the game
     // TODO: Refactor the cactus spawning
     // TODO: Change the dino pos rect height when crouching to avoid obstacles
+    // TODO: Refactor the code
+    // TODO: Fix dissapearing cacti
 
     CloseAudioDevice();
     CloseWindow();
