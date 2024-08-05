@@ -108,10 +108,7 @@ void render_ground(Ground* ground)
                 WHITE);
 }
 
-void render_dino(Dino* dino)
-{
-    DrawTexture(dino->current_frame, dino->pos.x, dino->pos.y, WHITE);
-}
+void render_dino(Dino* dino) { DrawTexture(dino->current_frame, dino->pos.x, dino->pos.y, WHITE); }
 
 void render_game_over(Retry* retry)
 {
@@ -161,23 +158,23 @@ void update_dino(Dino* dino, float time, int frame_flag)
         dino->vel.y = 0;
     }
 
-    switch (frame_flag) {
-        case 0:
-            dino->current_frame = textures[DINO_RUN1];
-            break;
-        case 1:
-            dino->current_frame = textures[DINO_RUN2];
-            break;
-        case 2:
-            dino->current_frame = textures[DINO_DUCK1];
-            dino->pos.y += textures[DINO_RUN1].height - textures[DINO_DUCK1].height;
-            break;
-        case 3:
-            dino->current_frame = textures[DINO_DUCK2];
-            dino->pos.y += textures[DINO_RUN2].height - textures[DINO_DUCK2].height;
-            break;
+    switch (frame_flag)
+    {
+    case 0:
+        dino->current_frame = textures[DINO_RUN1];
+        break;
+    case 1:
+        dino->current_frame = textures[DINO_RUN2];
+        break;
+    case 2:
+        dino->current_frame = textures[DINO_DUCK1];
+        dino->pos.y += textures[DINO_RUN1].height - textures[DINO_DUCK1].height;
+        break;
+    case 3:
+        dino->current_frame = textures[DINO_DUCK2];
+        dino->pos.y += textures[DINO_RUN2].height - textures[DINO_DUCK2].height;
+        break;
     }
-
 
     dino->dino_pos_rect.x = dino->pos.x;
     dino->dino_pos_rect.y = dino->pos.y;
@@ -273,7 +270,7 @@ void unload_and_free(Dino* dino, Cactus* cactus, Retry* retry, Ground* ground)
     {
         UnloadSound(sounds[i]);
     }
-    
+
     free(cactus);
     free(retry);
     free(dino);
@@ -348,7 +345,7 @@ void handle_input(Dino* dino, int* frame_flag)
 
     if (IsKeyPressed(KEY_DOWN))
     {
-       *frame_flag = 2; 
+        *frame_flag = 2;
     }
 
     if (IsKeyReleased(KEY_DOWN))
@@ -400,7 +397,8 @@ int main()
             handle_input(dino, &frame_flag);
 
             frames_counter++;
-            if (frames_counter > 5) {
+            if (frames_counter > 5)
+            {
                 frame_flag ^= 1;
                 frames_counter = 0;
             }
